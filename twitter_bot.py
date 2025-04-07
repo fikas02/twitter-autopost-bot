@@ -23,12 +23,13 @@ except Exception as e:
 
 # ===== JADWAL TWEET (UTC) =====
 TWEET_SCHEDULE = {
+    "16:00": "4. Aku onn",                                # 23:00 WIB (diperbarui dari 16:30)
     "17:00": "1. OPEN RESELLER! 🌟 Buka 07.00-03.00 WIB",  # 00:00 WIB
     "17:30": "5. Bismillah 🤲 Sehat & rezeki melimpah ✨",  # 00:30 WIB
     "18:00": "2. OPEN RESELLER! 🚀 Free konsultasi",       # 01:00 WIB
     "19:30": "3. Aku open ress",                          # 02:30 WIB
-    "20:00": "off dulss gaiss",                           # 03:00 WIB (POSTINGAN BARU)
-    "16:30": "4. Aku onn"                                 # 23:30 WIB
+    "20:00": "off dulss gaiss",                           # 03:00 WIB
+    "21:00": "6. OPEN RESELLER! Halo, kak! FH saya open dari 07.00 - 03.00 subuh, ada 3 admin fsr, aplikasi 70+ dan garansi mostly 0-1d! bisa kepoin pl nya dulu🤍feel free to ask buat ress baru! last, no fee no target! bisa tanya ke twt @xiaojdun atau untuk fsr ke WA di bio @xiaojdun yaa"  # 04:00 WIB (baru)
 }
 
 # ===== POSTING TWEET =====
