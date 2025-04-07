@@ -2,10 +2,11 @@ name: Twitter Auto-Post Bot
 
 on:
   schedule:
-    - cron: '0 17 * * *'   # 00:00 WIB (17:00 UTC)
-    - cron: '0 18 * * *'   # 01:00 WIB (18:00 UTC)
-    - cron: '30 19 * * *'  # 02:30 WIB (19:30 UTC)
-    - cron: '30 16 * * *'  # 23:30 WIB (16:30 UTC)
+    - cron: '0 17 * * *'    # 00:00 WIB
+    - cron: '30 17 * * *'   # 00:30 WIB (NEW)
+    - cron: '0 18 * * *'    # 01:00 WIB
+    - cron: '30 19 * * *'   # 02:30 WIB
+    - cron: '30 16 * * *'   # 23:30 WIB
   workflow_dispatch:
 
 jobs:
