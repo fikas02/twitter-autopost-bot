@@ -2,34 +2,38 @@ import tweepy
 import os
 import datetime
 
-# 1. Auth Setup
+# Debug info
+print("=== BOT STARTED ===")
+print("UTC Time:", datetime.datetime.utcnow().strftime("%H:%M"))
+
+# Twitter API Setup
 auth = tweepy.OAuth1UserHandler(
-    os.environ.get("API_KEY"),
-    os.environ.get("API_SECRET"),
-    os.environ.get("ACCESS_TOKEN"),
-    os.environ.get("ACCESS_TOKEN_SECRET")
+    consumer_key=os.environ.get("API_KEY"),
+    consumer_secret=os.environ.get("API_SECRET"),
+    access_token=os.environ.get("ACCESS_TOKEN"),
+    access_token_secret=os.environ.get("ACCESS_TOKEN_SECRET")
 )
 api = tweepy.API(auth)
 
-# 2. Tweet Schedule (UTC Times)
-TWEET_SCHEDULE = {
-    "17:00": "🕛 00:00 WIB: Buka reseller!",
-    "17:30": "🤲 Bismillah, semoga berkah",
-    "18:00": "🕐 01:00 WIB: Promo khusus!",
-    "19:30": "💼 Yuk join reseller kami",
-    "16:30": "🌙 Selamat malam calon reseller!"
+# Tweet Contents
+SCHEDULED_TWEETS = {
+    "17:00": "1. OPEN RESELLER! 🌟 Buka 07.00-03.00 WIB",  # 00:00 WIB
+    "17:30": "5. Bismillah 🤲 Sehat & rezeki melimpah ✨",  # 00:30 WIB
+    "18:00": "2. OPEN RESELLER! 🚀 Free konsultasi",       # 01:00 WIB
+    "19:30": "3. aku open ress",                          # 02:30 WIB
+    "16:30": "4. aku onn"                                 # 23:30 WIB
 }
 
-# 3. Execution
-current_utc = datetime.datetime.utcnow().strftime("%H:%M")
-if current_utc in TWEET_SCHEDULE:
+# Post Tweet
+current_time_utc = datetime.datetime.utcnow().strftime("%H:%M")
+if current_time_utc in SCHEDULED_TWEETS:
     try:
-        api.update_status(TWEET_SCHEDULE[current_utc])
-        print(f"✅ Posted at {current_utc} UTC")
-    except tweepy.TweepyException as e:
-        print(f"❌ Twitter error: {e}")
+        tweet = api.update_status(SCHEDULED_TWEETS[current_time_utc])
+        print(f"✅ POSTED: {tweet.id}")
+    except Exception as e:
+        print(f"❌ ERROR: {type(e).__name__}")
 else:
-    print(f"⏱️ No post scheduled for {current_utc} UTC")
+    print(f"⏳ Not scheduled (UTC: {current_time_utc})")
 
-# Uncomment to test:
-# api.update_status(f"🔧 Test tweet at {datetime.datetime.now()}")
+# Uncomment to test immediately
+# api.update_status("🔧 TEST: Bot is working!")
