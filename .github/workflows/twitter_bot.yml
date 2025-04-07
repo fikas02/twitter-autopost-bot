@@ -1,9 +1,9 @@
-name: Twitter Auto-Post Bot
+name: Twitter Bot
 
 on:
   schedule:
     - cron: '0 17 * * *'    # 00:00 WIB
-    - cron: '30 17 * * *'   # 00:30 WIB (NEW)
+    - cron: '30 17 * * *'   # 00:30 WIB
     - cron: '0 18 * * *'    # 01:00 WIB
     - cron: '30 19 * * *'   # 02:30 WIB
     - cron: '30 16 * * *'   # 23:30 WIB
@@ -14,13 +14,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-      - name: Install dependencies
+      - name: Install Tweepy
         run: pip install tweepy
-      - name: Run Twitter Bot
+      - name: Run Bot
         env:
           API_KEY: ${{ secrets.API_KEY }}
           API_SECRET: ${{ secrets.API_SECRET }}
