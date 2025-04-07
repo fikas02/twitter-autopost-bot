@@ -1,12 +1,12 @@
-name: Twitter Auto-Post Bot
+name: Twitter Bot
 
 on:
   schedule:
+    - cron: '25-35 16 * * *'  # 23:25-23:35 WIB
     - cron: '0-10 17 * * *'    # 00:00-00:10 WIB
-    - cron: '25-35 17 * * *'    # 00:25-00:35 WIB
-    - cron: '0-10 18 * * *'     # 01:00-01:10 WIB
-    - cron: '25-40 19 * * *'    # 02:25-02:40 WIB
-    - cron: '25-35 16 * * *'    # 23:25-23:35 WIB
+    - cron: '25-35 17 * * *'   # 00:25-00:35 WIB
+    - cron: '0-10 18 * * *'    # 01:00-01:10 WIB
+    - cron: '25-40 19 * * *'   # 02:25-02:40 WIB
   workflow_dispatch:
 
 jobs:
@@ -14,11 +14,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-      - name: Install dependencies
+      - name: Install Tweepy
         run: pip install tweepy
       - name: Run Bot
         env:
