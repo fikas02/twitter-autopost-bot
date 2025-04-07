@@ -2,19 +2,9 @@ name: Twitter Auto-Post Bot
 
 on:
   schedule:
-    # WIB 00:00-00:20 (UTC 17:00-17:20)
-    - cron: '*/5 17 * * *'
-    # WIB 00:30-00:50 (UTC 17:30-17:50)
-    - cron: '*/5 17 * * *'
-    # WIB 01:00-01:20 (UTC 18:00-18:20)
-    - cron: '*/5 18 * * *'
-    # WIB 02:30-02:50 (UTC 19:30-19:50)
-    - cron: '*/5 19 * * *'
-    # WIB 03:00-03:20 (UTC 20:00-20:20)  # JADWAL BARU
-    - cron: '*/5 20 * * *'
-    # WIB 23:30-23:50 (UTC 16:30-16:50)
-    - cron: '*/5 16 * * *'
-  workflow_dispatch:
+    # Waktu UTC (WIB = UTC+7)
+    - cron: '*/5 16-20 * * *'  # Jalankan setiap 5 menit dari 16:00-20:59 UTC
+  workflow_dispatch:  # Untuk trigger manual
 
 jobs:
   tweet:
@@ -26,7 +16,7 @@ jobs:
         with:
           python-version: '3.9'
       - name: Install dependencies
-        run: pip install tweepy
+        run: pip install tweepy --upgrade
       - name: Run Bot
         env:
           API_KEY: ${{ secrets.API_KEY }}
