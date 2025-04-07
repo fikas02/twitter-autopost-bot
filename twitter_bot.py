@@ -2,11 +2,12 @@ import tweepy
 import os
 import datetime
 
-# ===== CONFIGURATION =====
+# ===== 1. CONFIGURATION =====
 print("\n=== TWITTER BOT STARTED ===")
 print("UTC Time:", datetime.datetime.utcnow().strftime("%H:%M"))
+print("Timezone:", datetime.datetime.utcnow().astimezone().tzinfo)  # Added timezone info
 
-# 1. Twitter Authentication
+# Twitter Authentication
 try:
     auth = tweepy.OAuth1UserHandler(
         consumer_key=os.environ["API_KEY"],
@@ -16,9 +17,9 @@ try:
     )
     api = tweepy.API(auth)
     
-    # 2. Verify Connection
+    # Verify Connection
     user = api.verify_credentials()
-    print(f"🔑 Connected to Twitter as @{user.screen_name}")
+    print(f"🔑 Connected to Twitter as @{user.screen_name.strip('@')}")  # Fixed username format
 except Exception as e:
     print(f"❌ Connection failed: {e}")
     exit()
@@ -26,15 +27,17 @@ except Exception as e:
 # ===== TWEET SCHEDULE =====
 TWEET_SCHEDULE = {
     # UTC Time : Message
-    "17:00": "1. OPEN RESELLER! 🌟 Buka 07.00-03.00 WIB",  # 00:00 WIB
-    "17:30": "5. Bismillah 🤲 Sehat & rezeki melimpah ✨",  # 00:30 WIB
-    "18:00": "2. OPEN RESELLER! 🚀 Free konsultasi",       # 01:00 WIB
-    "19:30": "3. aku open ress",                          # 02:30 WIB
-    "16:30": "4. aku onn"                                 # 23:30 WIB
+    "17:00": "1. OPEN RESELLER! 🌟 Buka 07.00-03.00 WIB",
+    "17:30": "5. Bismillah 🤲 Sehat & rezeki melimpah ✨",
+    "18:00": "2. OPEN RESELLER! 🚀 Free konsultasi",
+    "19:30": "3. aku open ress",
+    "16:30": "4. aku onn"
 }
 
-# ===== AUTO POSTING =====
+# ===== 3. AUTO POSTING WITH ENHANCED LOGGING =====
 current_utc = datetime.datetime.utcnow().strftime("%H:%M")
+next_scheduled = min(TWEET_SCHEDULE.keys())  # Added next schedule info
+print(f"Next scheduled tweet at UTC: {next_scheduled}")
 
 if current_utc in TWEET_SCHEDULE:
     try:
