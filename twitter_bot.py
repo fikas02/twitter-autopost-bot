@@ -2,68 +2,34 @@ import tweepy
 import os
 import datetime
 
-# Debugging header
-print("=== BOT STARTED ===")
-print("UTC Time:", datetime.datetime.utcnow().strftime("%H:%M"))
+# 1. Auth Setup
+auth = tweepy.OAuth1UserHandler(
+    os.environ.get("API_KEY"),
+    os.environ.get("API_SECRET"),
+    os.environ.get("ACCESS_TOKEN"),
+    os.environ.get("ACCESS_TOKEN_SECRET")
+)
+api = tweepy.API(auth)
 
-# Twitter API Config
-API_KEY = os.environ.get("API_KEY")
-API_SECRET = os.environ.get("API_SECRET")
-ACCESS_TOKEN = os.environ.get("ACCESS_TOKEN")
-ACCESS_TOKEN_SECRET = os.environ.get("ACCESS_TOKEN_SECRET")
+# 2. Tweet Schedule (UTC Times)
+TWEET_SCHEDULE = {
+    "17:00": "🕛 00:00 WIB: Buka reseller!",
+    "17:30": "🤲 Bismillah, semoga berkah",
+    "18:00": "🕐 01:00 WIB: Promo khusus!",
+    "19:30": "💼 Yuk join reseller kami",
+    "16:30": "🌙 Selamat malam calon reseller!"
+}
 
-# Verify credentials
-try:
-    auth = tweepy.OAuth1UserHandler(API_KEY, API_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
-    api = tweepy.API(auth)
-    user = api.verify_credentials()
-    print(f"🔑 Connected to Twitter as @{user.screen_name}")
-except Exception as e:
-    print(f"❌ Twitter connection failed: {e}")
-    exit()
-
-# Tweet Contents
-tweets = [
-    "1. OPEN RESELLER! 🌟",  # 00:00 WIB
-    "2. OPEN RESELLER! 🚀",  # 01:00 WIB
-    "3. aku open ress",      # 02:30 WIB
-    "4. aku onn",           # 23:30 WIB
-    "5. Bismillah 🤲\n\nKita semua sehat 💊\nBahagia 🌈\nRezeki melimpah 💰\nAamiin ✨"  # 00:30 WIB
-]
-
-# Posting function
-def tweet_now(message):
+# 3. Execution
+current_utc = datetime.datetime.utcnow().strftime("%H:%M")
+if current_utc in TWEET_SCHEDULE:
     try:
-        tweet = api.update_status(message)
-        print(f"✅ TWEETED: https://twitter.com/user/status/{tweet.id}")
-        return True
-    except Exception as e:
-        print(f"❌ FAILED: {type(e).__name__} - {e}")
-        return False
-
-# Schedule check (UTC)
-current_time = datetime.datetime.utcnow()
-current_hour = current_time.hour
-current_min = current_time.minute
-
-# Wide time windows (WIB = UTC+7)
-if current_hour == 17 and 0 <= current_min < 15:    # 00:00-00:15 WIB
-    tweet_now(tweets[0])
-    
-elif current_hour == 17 and 25 <= current_min < 40:  # 00:25-00:40 WIB
-    tweet_now(tweets[4])
-    
-elif current_hour == 18 and 0 <= current_min < 15:   # 01:00-01:15 WIB
-    tweet_now(tweets[1])
-    
-elif current_hour == 19 and 25 <= current_min < 40:  # 02:25-02:40 WIB
-    tweet_now(tweets[2])
-    
-elif current_hour == 16 and 25 <= current_min < 40:  # 23:25-23:40 WIB
-    tweet_now(tweets[3])
-    
+        api.update_status(TWEET_SCHEDULE[current_utc])
+        print(f"✅ Posted at {current_utc} UTC")
+    except tweepy.TweepyException as e:
+        print(f"❌ Twitter error: {e}")
 else:
-    print(f"⏰ Not scheduled (UTC {current_hour}:{current_min})")
+    print(f"⏱️ No post scheduled for {current_utc} UTC")
 
-# TEST MODE (Uncomment to force tweet)
-# tweet_now("🔧 TEST: Bot is working! " + str(datetime.datetime.now()))
+# Uncomment to test:
+# api.update_status(f"🔧 Test tweet at {datetime.datetime.now()}")
