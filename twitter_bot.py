@@ -2,66 +2,68 @@ import tweepy
 import os
 import datetime
 
+# Debugging header
+print("=== BOT STARTED ===")
+print("UTC Time:", datetime.datetime.utcnow().strftime("%H:%M"))
+
 # Twitter API Config
 API_KEY = os.environ.get("API_KEY")
 API_SECRET = os.environ.get("API_SECRET")
 ACCESS_TOKEN = os.environ.get("ACCESS_TOKEN")
 ACCESS_TOKEN_SECRET = os.environ.get("ACCESS_TOKEN_SECRET")
 
-# Authentication
-auth = tweepy.OAuth1UserHandler(API_KEY, API_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
-api = tweepy.API(auth)
+# Verify credentials
+try:
+    auth = tweepy.OAuth1UserHandler(API_KEY, API_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
+    api = tweepy.API(auth)
+    user = api.verify_credentials()
+    print(f"🔑 Connected to Twitter as @{user.screen_name}")
+except Exception as e:
+    print(f"❌ Twitter connection failed: {e}")
+    exit()
 
 # Tweet Contents
 tweets = [
-    # 00:00 WIB
-    "1. OPEN RESELLER! 🌟 FH buka 07.00-03.00, 3 admin, aplikasi 70+...",
-    
-    # 01:00 WIB
-    "2. OPEN RESELLER! Halo kak! FH saya open dari 07.00-03.00 subuh...",
-    
-    # 02:30 WIB
-    "3. akuu open ress loh kakk",
-    
-    # 23:30 WIB
-    "4. aku onn",
-    
-    # 00:30 WIB (NEW)
-    "5. Bismillah 🤲\n\nSemoga kita semua:\n• Sehat selalu 💊\n• Bahagia dunia akhirat 🌈\n• Rezeki melimpah 💰\n\nAamiin ✨"
+    "1. OPEN RESELLER! 🌟",  # 00:00 WIB
+    "2. OPEN RESELLER! 🚀",  # 01:00 WIB
+    "3. aku open ress",      # 02:30 WIB
+    "4. aku onn",           # 23:30 WIB
+    "5. Bismillah 🤲\n\nKita semua sehat 💊\nBahagia 🌈\nRezeki melimpah 💰\nAamiin ✨"  # 00:30 WIB
 ]
 
-def post_tweet(msg):
+# Posting function
+def tweet_now(message):
     try:
-        api.update_status(msg)
-        print(f"✅ Tweeted: {msg}")
+        tweet = api.update_status(message)
+        print(f"✅ TWEETED: https://twitter.com/user/status/{tweet.id}")
         return True
     except Exception as e:
-        print(f"❌ Failed to post: {e}")
+        print(f"❌ FAILED: {type(e).__name__} - {e}")
         return False
 
-# Main Logic
-now = datetime.datetime.utcnow()
-current_hour = now.hour
-current_min = now.minute
+# Schedule check (UTC)
+current_time = datetime.datetime.utcnow()
+current_hour = current_time.hour
+current_min = current_time.minute
 
-# Wide time windows to prevent missing schedules
-if current_hour == 17 and 0 <= current_min <= 10:    # 00:00-00:10 WIB
-    post_tweet(tweets[0])
+# Wide time windows (WIB = UTC+7)
+if current_hour == 17 and 0 <= current_min < 15:    # 00:00-00:15 WIB
+    tweet_now(tweets[0])
     
-elif current_hour == 17 and 25 <= current_min <= 35:  # 00:25-00:35 WIB
-    post_tweet(tweets[4])
+elif current_hour == 17 and 25 <= current_min < 40:  # 00:25-00:40 WIB
+    tweet_now(tweets[4])
     
-elif current_hour == 18 and 0 <= current_min <= 10:   # 01:00-01:10 WIB
-    post_tweet(tweets[1])
+elif current_hour == 18 and 0 <= current_min < 15:   # 01:00-01:15 WIB
+    tweet_now(tweets[1])
     
-elif current_hour == 19 and 25 <= current_min <= 40:  # 02:25-02:40 WIB
-    post_tweet(tweets[2])
+elif current_hour == 19 and 25 <= current_min < 40:  # 02:25-02:40 WIB
+    tweet_now(tweets[2])
     
-elif current_hour == 16 and 25 <= current_min <= 35:  # 23:25-23:35 WIB
-    post_tweet(tweets[3])
+elif current_hour == 16 and 25 <= current_min < 40:  # 23:25-23:40 WIB
+    tweet_now(tweets[3])
     
 else:
-    print(f"⏰ UTC Time: {current_hour}:{current_min} - Not scheduled")
+    print(f"⏰ Not scheduled (UTC {current_hour}:{current_min})")
 
-# TESTING ONLY - Uncomment to force post now
-# post_tweet("🔧 TEST: System check at " + str(datetime.datetime.now()))
+# TEST MODE (Uncomment to force tweet)
+# tweet_now("🔧 TEST: Bot is working! " + str(datetime.datetime.now()))
