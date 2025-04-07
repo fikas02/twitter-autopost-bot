@@ -35,7 +35,7 @@ if current_time == "17:00":  # 00:00 WIB
     post_tweet(tweet_contents[0])
 elif current_time == "18:00":  # 01:00 WIB
     post_tweet(tweet_contents[1])
-elif current_time == "19:30":  # 02:30 WIB
+elif current_time == "16:30":  # 23:30 WIB
     post_tweet(tweet_contents[2])
 else:
     print(f"🕒 Sekarang jam {current_time} UTC, belum waktunya posting.")
