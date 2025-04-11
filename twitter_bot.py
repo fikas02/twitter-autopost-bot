@@ -2,32 +2,31 @@ import tweepy
 import os
 import datetime
 import json
-import time
 import random
-import signal
 import logging
-from filelock import FileLock
 
 # ===== Setup Logging =====
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[
-        logging.FileHandler("twitter_bot.log"),
-        logging.StreamHandler()
-    ]
+    handlers=[logging.StreamHandler()]
 )
 logger = logging.getLogger(__name__)
 
-# ===== Configuration =====
+# ===== Konfigurasi =====
 class Config:
-    SCHEDULE_FILE = "schedule.json"
     LAST_POST_FILE = "last_post.json"
-    LOCK_FILE = "bot.lock"
-    MAX_RETRIES = 3
-    RETRY_DELAY = 60  # seconds
+    RESELLER_MESSAGE = "OPEN RESELLER! Halo, kak! FH saya open dari 07.00 - 03.00 subuh, ada 3 admin fsr, aplikasi 70+ dan garansi mostly 0-1d! bisa kepoin pl nya dulu🤍feel free to ask buat ress baru! last, no fee no target! bisa tanya ke twt @xiaojdun atau untuk fsr ke WA di bio @xiaojdun yaa"
+    OTHER_MESSAGES = [
+        "Aku onn",
+        "Bismillah 🤲 Sehat & rezeki melimpah ✨",
+        "Aku open ress",
+        "off dulss gaiss",
+        "Jangan lupa follow @xiaojdun untuk update terbaru!",
+        "Pagi semangat! Jangan lupa minum air putih 💧"
+    ]
 
-# ===== Twitter Client =====
+# ===== Inisialisasi Twitter Client =====
 def initialize_twitter_client():
     try:
         client = tweepy.Client(
@@ -38,126 +37,55 @@ def initialize_twitter_client():
             wait_on_rate_limit=True
         )
         user = client.get_me()
-        logger.info(f"Connected to Twitter as @{user.data.username}")
+        logger.info(f"Terhubung ke Twitter sebagai @{user.data.username}")
         return client
     except Exception as e:
-        logger.error(f"Failed to connect: {e}")
+        logger.error(f"Gagal koneksi: {e}")
         raise
 
-# ===== Schedule Management =====
-def generate_schedule():
-    RESELLER_MESSAGE = "OPEN RESELLER! ..."
-    OTHER_MESSAGES = ["Aku onn", "Bismillah ...", ...]
-
+# ===== Manajemen Jadwal =====
+def generate_daily_schedule():
+    """Generate jadwal untuk hari ini."""
     schedule = {
-        "15:00": RESELLER_MESSAGE,
-        "03:00": RESELLER_MESSAGE
+        "15:00": Config.RESELLER_MESSAGE,  # 22:00 WIB
+        "03:00": Config.RESELLER_MESSAGE    # 10:00 WIB
     }
 
-    # Add random night posts (16:00-20:00 UTC)
+    # Tambahkan 3 tweet acak antara 16:00-20:00 UTC (23:00-03:00 WIB)
     for _ in range(3):
         hour = random.randint(16, 20)
-        minute = random.randint(0, 59)
-        schedule[f"{hour:02d}:{minute:02d}"] = random.choice(OTHER_MESSAGES)
-
-    # Add 3 random posts at other times
-    for _ in range(3):
-        while True:
-            hour = random.randint(0, 23)
-            minute = random.randint(0, 59)
-            time_key = f"{hour:02d}:{minute:02d}"
-            if time_key not in schedule:
-                schedule[time_key] = random.choice(OTHER_MESSAGES)
-                break
+        minute = random.choice([0, 30])  # Sesuai cron job (setiap 30 menit)
+        schedule[f"{hour:02d}:{minute:02d}"] = random.choice(Config.OTHER_MESSAGES)
 
     return schedule
 
-def load_schedule():
-    try:
-        with open(Config.SCHEDULE_FILE, "r") as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        schedule = generate_schedule()
-        with open(Config.SCHEDULE_FILE, "w") as f:
-            json.dump(schedule, f)
-        return schedule
-
-# ===== Anti-Duplication =====
-def save_last_post(time_key):
-    with FileLock(Config.LAST_POST_FILE + ".lock"):
-        with open(Config.LAST_POST_FILE, "w") as f:
-            json.dump({
-                "last_post": time_key,
-                "timestamp": datetime.datetime.utcnow().isoformat()
-            }, f)
-
-def load_last_post():
-    try:
-        with FileLock(Config.LAST_POST_FILE + ".lock"):
-            with open(Config.LAST_POST_FILE, "r") as f:
-                data = json.load(f)
-                post_time = datetime.datetime.fromisoformat(data["timestamp"])
-                if (datetime.datetime.utcnow() - post_time).total_seconds() >= 12 * 3600:
-                    return None
-                return data.get("last_post")
-    except (FileNotFoundError, json.JSONDecodeError, KeyError):
-        return None
-    except Exception as e:
-        logger.error(f"Error loading last_post: {e}")
-        return None
-
-# ===== Tweet Posting =====
-def post_tweet(client, message, retry=0):
+# ===== Posting Tweet =====
+def post_tweet(client, message):
     try:
         response = client.create_tweet(text=message)
-        logger.info(f"Tweet posted: https://twitter.com/user/status/{response.data['id']}")
+        logger.info(f"Tweet terkirim: https://twitter.com/user/status/{response.data['id']}")
         return True
     except tweepy.TweepyException as e:
-        logger.error(f"Failed to post (Tweepy): {e}")
-        if retry < Config.MAX_RETRIES:
-            time.sleep(Config.RETRY_DELAY * (retry + 1))
-            return post_tweet(client, message, retry + 1)
+        logger.error(f"Gagal posting: {e}")
         return False
 
-# ===== Main Loop =====
+# ===== Fungsi Utama =====
 def main():
     client = initialize_twitter_client()
-    schedule = load_schedule()
-    last_schedule_day = datetime.datetime.utcnow().day
+    schedule = generate_daily_schedule()
+    current_time = datetime.datetime.utcnow().strftime("%H:%M")
 
-    def shutdown_handler(signum, frame):
-        logger.info("Shutting down gracefully...")
-        exit(0)
+    logger.info(f"Memeriksa jadwal (UTC: {current_time})")
 
-    signal.signal(signal.SIGINT, shutdown_handler)
-    signal.signal(signal.SIGTERM, shutdown_handler)
-
-    while True:
-        try:
-            current_time = datetime.datetime.utcnow()
-            if current_time.day != last_schedule_day:
-                schedule = generate_schedule()
-                last_schedule_day = current_time.day
-                logger.info("Generated new schedule for the day")
-
-            current_hour_min = current_time.strftime("%H:%M")
-            last_post = load_last_post()
-
-            for schedule_time, message in schedule.items():
-                schedule_hour, schedule_min = map(int, schedule_time.split(":"))
-                if (current_time.hour == schedule_hour and 
-                    (schedule_min - 15) <= current_time.minute <= (schedule_min + 20)):
-                    if last_post != schedule_time:
-                        if post_tweet(client, message):
-                            save_last_post(schedule_time)
-                            time.sleep(60)  # Avoid rapid consecutive posts
-                    break
-
-            time.sleep(300 - (time.time() % 300))  # Precise 5-minute sleep
-
-        except Exception as e:
-            logger.error(f"Unexpected error in main loop: {e}")
-            time.sleep(60)
+    # Cek apakah waktu saat ini ada di jadwal
+    if current_time in schedule:
+        message = schedule[current_time]
+        if post_tweet(client, message):
+            logger.info("Bot selesai berjalan.")
+        else:
+            logger.warning("Gagal posting, coba lagi nanti.")
+    else:
+        logger.info(f"Tidak ada jadwal untuk {current_time} UTC.")
 
 if __name__ == "__main__":
     main()
