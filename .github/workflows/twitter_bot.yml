@@ -4,7 +4,7 @@ on:
   schedule:
     - cron: '0 3,15 * * *'         # Jam 03:00 dan 15:00 UTC
     - cron: '0,30 16-20 * * *'      # Setiap 30 menit dari 16:00-20:00 UTC
-  workflow_dispatch:  # Untuk trigger manual
+  workflow_dispatch:               # Untuk trigger manual
 
 jobs:
   run-bot:
@@ -19,7 +19,7 @@ jobs:
         python-version: '3.9'
     
     - name: Install dependencies
-      run: pip install tweepy
+      run: pip install tweepy python-dotenv
     
     - name: Run Twitter Bot
       env:
