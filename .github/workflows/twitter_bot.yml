@@ -2,10 +2,10 @@ name: Twitter Bot Scheduler
 
 on:
   schedule:
-    - cron: '0,15,30,45 3 * * *'    # Setiap 15 menit dari 03:00-03:45 UTC
-    - cron: '0,15,30,45 15 * * *'   # Setiap 15 menit dari 15:00-15:45 UTC
-    - cron: '0,30 16-20 * * *'      # Setiap 30 menit dari 16:00-20:00 UTC
-  workflow_dispatch:
+    - cron: '0,30 3 * * *'    # 03:00 & 03:30 UTC (antisipasi delay)
+    - cron: '0,30 15 * * *'   # 15:00 & 15:30 UTC (antisipasi delay)
+    - cron: '0,30 16-20 * * *' # Setiap 30 menit dari 16:00-20:00 UTC
+  workflow_dispatch:           # Untuk trigger manual
 
 jobs:
   run-bot:
