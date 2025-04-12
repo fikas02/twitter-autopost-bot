@@ -34,12 +34,12 @@ jobs:
           ACCESS_TOKEN_SECRET: ${{ secrets.ACCESS_TOKEN_SECRET }}
         run: python twitter_bot.py
         
-      - name: Commit History
+      - name: Commit and Push Changes
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
           git add schedule_history.json
-          git commit -m "Update history [skip ci]" || echo "No changes"
+          git commit -m "Update schedule history [skip ci]" || echo "No changes"
           git push
