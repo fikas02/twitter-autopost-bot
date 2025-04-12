@@ -34,7 +34,7 @@ jobs:
           ACCESS_TOKEN_SECRET: ${{ secrets.ACCESS_TOKEN_SECRET }}
         run: python twitter_bot.py
         
-      - name: Commit and Push Changes
+      - name: Commit History
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
