@@ -18,13 +18,13 @@ class Config:
     RESELLER_MESSAGE = "OPEN RESELLER! Halo, kak! FH saya open dari 07.00 - 03.00 subuh..."
     OTHER_MESSAGES = [
         "Aku onn",
-        "Bismillah 🤲 Sehat & rezeki melimpah ✨",
+        "Bismillah 🤲 Sehat & rezeki melimpah ✨", 
         "Aku open ress",
         "off dulss gaiss",
         "Jangan lupa follow @xiaojdun!"
     ]
     SCHEDULE_FILE = "schedule_history.json"
-    CHECK_INTERVAL = 30  # Diperlebar menjadi 30 menit
+    CHECK_INTERVAL = 30  # Toleransi 30 menit
     POST_INTERVAL = 6 * 3600  # Batas duplikasi: 6 jam
 
 def get_twitter_client():
@@ -37,7 +37,7 @@ def get_twitter_client():
     )
 
 def generate_daily_schedule():
-    """Generate jadwal dengan pesan acak (boleh duplikat di jam berbeda)"""
+    """Generate jadwal dengan pesan acak"""
     schedule = {
         "03:00": Config.RESELLER_MESSAGE,
         "15:00": Config.RESELLER_MESSAGE
@@ -68,15 +68,13 @@ def should_post(schedule_time, message, history):
     if any(entry["schedule_time"] == schedule_time for entry in history.get("posted", [])):
         return False
     
-    # 2. Cek apakah konten sama sudah diposting dalam 6 jam terakhir
-    last_similar_post = max(
+    # 2. Cek duplikasi konten dalam 6 jam
+    last_similar = max(
         (datetime.datetime.fromisoformat(entry["time"]) for entry in history.get("posted", [])
         if entry["message"] == message
     ), default=None)
     
-    if last_similar_post:
-        return (datetime.datetime.utcnow() - last_similar_post).total_seconds() > Config.POST_INTERVAL
-    return True
+    return (not last_similar) or ((datetime.datetime.utcnow() - last_similar).total_seconds() > Config.POST_INTERVAL)
 
 def main():
     logger.info("\n==== BOT STARTED ====")
