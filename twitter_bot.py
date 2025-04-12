@@ -24,7 +24,7 @@ class Config:
         "Jangan lupa follow @xiaojdun!"
     ]
     SCHEDULE_FILE = "schedule_history.json"
-    CHECK_INTERVAL = 15  # Menit
+    CHECK_INTERVAL = 30  # Menit
     POST_INTERVAL = 4 * 3600  # 4 jam (minimal interval untuk konten sama)
 
 def get_twitter_client():
