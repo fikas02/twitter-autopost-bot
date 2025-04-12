@@ -122,7 +122,7 @@ def main():
                 month=datetime.datetime.utcnow().month,
                 day=datetime.datetime.utcnow().day
             )
-            time_diff = abs((datetime.datetime.utcnow() - scheduled_time).total_seconds() / 60
+            time_diff = abs((datetime.datetime.utcnow() - scheduled_time).total_seconds()) / 60
             
             if time_diff <= Config.CHECK_INTERVAL and can_post_message(message, history):
                 logger.info(f"Attempting to post: {schedule_time} UTC")
