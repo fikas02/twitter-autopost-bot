@@ -1,113 +1,121 @@
 import tweepy
 import os
 import datetime
+import json
 import random
 import logging
-import time
+from pathlib import Path
 
-# ===== Setup Logging =====
+# ===== Setup =====
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[logging.StreamHandler()]
+    handlers=[logging.StreamHandler(), logging.FileHandler("bot.log")]
 )
 logger = logging.getLogger(__name__)
 
-# ===== Konfigurasi =====
 class Config:
-    RESELLER_MESSAGE = "OPEN RESELLER! Halo, kak! FH saya open dari 07.00 - 03.00 subuh, ada 3 admin fsr, aplikasi 70+ dan garansi mostly 0-1d! bisa kepoin pl nya dulu🤍feel free to ask buat ress baru! last, no fee no target! bisa tanya ke twt @xiaojdun atau untuk fsr ke WA di bio @xiaojdun yaa"
-    OTHER_MESSAGES = [
-        "Aku onn",
-        "Bismillah 🤲 Sehat & rezeki melimpah ✨",
-        "Aku open ress",
-        "off dulss gaiss",
-        "Jangan lupa follow @xiaojdun untuk update terbaru!",
-        "Pagi semangat! Jangan lupa minum air putih 💧"
-    ]
-    TOLERANCE_MINUTES = 30  # Toleransi delay diperlebar (30 menit)
-    MAX_RETRIES = 2  # Maksimal retry jika gagal posting
+    RESELLER_MESSAGE = "OPEN RESELLER! Halo, kak!..."
+    OTHER_MESSAGES = ["Aku onn", "Bismillah 🤲", "off dulss gaiss"]
+    SCHEDULE_FILE = "schedule_history.json"
+    CHECK_INTERVAL = 15  # Menit
 
-# ===== Inisialisasi Twitter Client =====
-def initialize_twitter_client():
-    try:
-        client = tweepy.Client(
-            consumer_key=os.getenv("API_KEY"),
-            consumer_secret=os.getenv("API_SECRET"),
-            access_token=os.getenv("ACCESS_TOKEN"),
-            access_token_secret=os.getenv("ACCESS_TOKEN_SECRET"),
-            wait_on_rate_limit=True
-        )
-        user = client.get_me()
-        logger.info(f"✅ Terhubung ke Twitter sebagai @{user.data.username}")
-        return client
-    except Exception as e:
-        logger.error(f"❌ Gagal koneksi: {e}")
-        raise
+# ===== Twitter Client =====
+def get_twitter_client():
+    return tweepy.Client(
+        consumer_key=os.getenv("API_KEY"),
+        consumer_secret=os.getenv("API_SECRET"),
+        access_token=os.getenv("ACCESS_TOKEN"),
+        access_token_secret=os.getenv("ACCESS_TOKEN_SECRET"),
+        wait_on_rate_limit=True
+    )
 
-# ===== Generate Jadwal (Boleh Duplikasi Pesan) =====
+# ===== Jadwal & History =====
 def generate_daily_schedule():
-    """Generate jadwal dengan:
-    - 2x fixed time (03:00 & 15:00 UTC)
-    - 3x random time (16:00-20:00 UTC, menit 0/30)
-    """
+    """Generate jadwal hari ini + simpan ke file"""
     schedule = {
-        "03:00": Config.RESELLER_MESSAGE,  # 10:00 WIB
-        "15:00": Config.RESELLER_MESSAGE   # 22:00 WIB
+        "03:00": Config.RESELLER_MESSAGE,
+        "15:00": Config.RESELLER_MESSAGE,
+        **{f"{random.randint(16,20)}:{random.choice([0,30])}": random.choice(Config.OTHER_MESSAGES) for _ in range(3)}
     }
-
-    # Tambahkan 3 tweet acak (boleh duplikasi pesan)
-    for _ in range(3):
-        hour = random.randint(16, 20)
-        minute = random.choice([0, 30])
-        schedule[f"{hour:02d}:{minute:02d}"] = random.choice(Config.OTHER_MESSAGES)
+    
+    # Simpan jadwal
+    history = load_history()
+    history["schedule"] = schedule
+    history["generated_at"] = datetime.datetime.utcnow().isoformat()
+    save_history(history)
     
     return schedule
 
-# ===== Posting Tweet dengan Retry =====
-def post_tweet(client, message):
-    for attempt in range(Config.MAX_RETRIES + 1):
-        try:
-            response = client.create_tweet(text=message)
-            logger.info(f"✅ Tweet terkirim: https://twitter.com/user/status/{response.data['id']}")
-            return True
-        except tweepy.TweepyException as e:
-            if attempt < Config.MAX_RETRIES:
-                logger.warning(f"⚠️ Coba lagi ({attempt + 1}/{Config.MAX_RETRIES})...")
-                time.sleep(5)
-            else:
-                logger.error(f"❌ Gagal posting setelah {Config.MAX_RETRIES} percobaan: {e}")
-    return False
+def load_history():
+    try:
+        with open(Config.SCHEDULE_FILE, "r") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {"schedule": {}, "generated_at": None, "posted": []}
 
-# ===== Fungsi Utama =====
+def save_history(data):
+    with open(Config.SCHEDULE_FILE, "w") as f:
+        json.dump(data, f)
+
+# ===== Posting Logic =====
+def should_post(schedule_time, history):
+    """Cek apakah harus posting"""
+    now = datetime.datetime.utcnow()
+    scheduled_time = datetime.datetime.strptime(schedule_time, "%H:%M").replace(
+        year=now.year, month=now.month, day=now.day
+    )
+    
+    # Cek dalam rentang 15 menit
+    time_diff = abs((now - scheduled_time).total_seconds()) / 60
+    is_time_match = time_diff <= Config.CHECK_INTERVAL
+    
+    # Cek apakah sudah pernah posting
+    is_posted = schedule_time in history.get("posted", [])
+    
+    # Cek apakah jadwal sudah lewat (dalam 12 jam terakhir)
+    is_past_due = (now - scheduled_time).total_seconds() <= 12 * 3600
+    
+    return (is_time_match or is_past_due) and not is_posted
+
+def post_tweet(client, message, schedule_time):
+    try:
+        client.create_tweet(text=message)
+        logger.info(f"✅ Posted: {schedule_time} UTC")
+        
+        # Update history
+        history = load_history()
+        history["posted"].append(schedule_time)
+        save_history(history)
+        
+        return True
+    except Exception as e:
+        logger.error(f"❌ Failed to post: {e}")
+        return False
+
+# ===== Main Function =====
 def main():
-    logger.info("\n=== BOT DIMULAI ===")
-    client = initialize_twitter_client()
-    schedule = generate_daily_schedule()
-
-    # Log jadwal
-    logger.info("📅 Jadwal Hari Ini:")
+    logger.info("\n==== BOT STARTED ====")
+    
+    # 1. Load/Muat Jadwal
+    history = load_history()
+    if not history.get("schedule") or datetime.datetime.fromisoformat(history["generated_at"]).date() != datetime.datetime.utcnow().date():
+        schedule = generate_daily_schedule()
+    else:
+        schedule = history["schedule"]
+    
+    logger.info("📅 Today's Schedule:")
     for time, msg in sorted(schedule.items()):
-        logger.info(f"- {time} UTC: {msg[:50]}...")  # Tampilkan 50 karakter pertama
+        logger.info(f"- {time} UTC: {msg[:30]}...")
 
-    # Cek waktu dengan toleransi
-    current_time = datetime.datetime.utcnow()
-    current_str = current_time.strftime("%H:%M")
-    logger.info(f"🕒 Waktu Sekarang (UTC): {current_str}")
-
-    posted = False
-    for scheduled_time, message in schedule.items():
-        scheduled = datetime.datetime.strptime(scheduled_time, "%H:%M")
-        delta = abs((current_time - scheduled).total_seconds()) / 60  # Dalam menit
-
-        if delta <= Config.TOLERANCE_MINUTES:
-            logger.info(f"🎯 Menemukan jadwal: {scheduled_time} UTC (±{Config.TOLERANCE_MINUTES} menit)")
-            if post_tweet(client, message):
-                posted = True
-                break  # Hanya post 1 tweet per eksekusi
-
-    if not posted:
-        logger.info("⏳ Tidak ada jadwal yang cocok")
-    logger.info("=== BOT SELESAI ===\n")
+    # 2. Cek dan Posting
+    client = get_twitter_client()
+    for schedule_time, message in schedule.items():
+        if should_post(schedule_time, history):
+            logger.info(f"🎯 Processing: {schedule_time} UTC")
+            post_tweet(client, message, schedule_time)
+    
+    logger.info("==== BOT FINISHED ====\n")
 
 if __name__ == "__main__":
     main()
