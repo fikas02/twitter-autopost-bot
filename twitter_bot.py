@@ -20,13 +20,14 @@ class Config:
     OTHER_MESSAGES = [
         "Aku onn",
         "Bismillah 🤲 Sehat & rezeki melimpah ✨", 
-        "OPEN RESELLER! Halo, kak! FH saya open dari 07.00 - 03.00 subuh, ada 3 admin fsr, aplikasi 70+ dan garansi mostly 0-1d! 🤍feel free to ask buat ress baru! last, no fee no target! bisa tanya ke twt @xiaojdun atau untuk fsr ke WA di bio @xiaojdun yaa",
+        "OPEN RESELLER! Halo, kak! FH saya open dari 07.00 - 03.00 subuh, ada 3 admin fsr, aplikasi 70+ dan garansi mostly 0-1d! bisa kepoin pl nya dulu🤍feel free to ask buat ress baru! last, no fee no target! bisa tanya ke twt @xiaojdun atau untuk fsr ke WA di bio @xiaojdun yaa",
         "off dulss gaiss",
         "Jangan lupa follow @xiaojdun!"
     ]
     SCHEDULE_FILE = "schedule_history.json"
     CHECK_INTERVAL = 30  # Menit
-    POST_INTERVAL = 4 * 3600  # 4 jam (minimal interval untuk konten sama)
+    POST_INTERVAL = 4 * 3600  # 4 jam
+    MAX_TWEET_LENGTH = 275  # 275 untuk buffer 5 karakter
 
 def get_twitter_client():
     return tweepy.Client(
@@ -70,7 +71,6 @@ def load_history():
     try:
         with open(Config.SCHEDULE_FILE, "r") as f:
             data = json.load(f)
-            # Clean old entries (older than 24 hours)
             current_time = datetime.datetime.utcnow()
             data["posted"] = [
                 entry for entry in data.get("posted", [])
@@ -85,7 +85,7 @@ def save_history(data):
         json.dump(data, f, indent=2)
 
 def can_post_message(message, history):
-    """Cek apakah pesan boleh diposting (tidak duplicate dalam 4 jam)"""
+    """Cek apakah pesan boleh diposting"""
     last_posted = [
         entry["time"] for entry in history.get("posted", [])
         if entry["message"] == message
@@ -96,10 +96,16 @@ def can_post_message(message, history):
     last_time = max(datetime.datetime.fromisoformat(t) for t in last_posted)
     return (datetime.datetime.utcnow() - last_time).total_seconds() > Config.POST_INTERVAL
 
+def safe_tweet_text(text):
+    """Pastikan teks tidak melebihi batas karakter"""
+    if len(text) > Config.MAX_TWEET_LENGTH:
+        logger.warning(f"Pesan dipotong dari {len(text)} karakter")
+        return text[:Config.MAX_TWEET_LENGTH] + "…"
+    return text
+
 def main():
     logger.info("\n==== BOT STARTED ====")
     
-    # 1. Load/Muat Jadwal
     history = load_history()
     if not history.get("schedule") or datetime.datetime.fromisoformat(history["generated_at"]).date() != datetime.datetime.utcnow().date():
         logger.info("Generating new schedule for today")
@@ -112,7 +118,6 @@ def main():
     for time, msg in sorted(schedule.items()):
         logger.info(f"- {time} UTC: {msg[:30]}...")
 
-    # 2. Cek dan Posting
     client = get_twitter_client()
     posted_count = 0
     
@@ -127,12 +132,13 @@ def main():
             
             if time_diff <= Config.CHECK_INTERVAL and can_post_message(message, history):
                 logger.info(f"Attempting to post: {schedule_time} UTC")
-                response = client.create_tweet(text=message)
+                safe_message = safe_tweet_text(message)  # Gunakan teks yang aman
+                response = client.create_tweet(text=safe_message)
                 logger.info(f"✅ Posted: {schedule_time} UTC - Tweet ID: {response.data['id']}")
                 
                 history["posted"].append({
                     "time": datetime.datetime.utcnow().isoformat(),
-                    "message": message,
+                    "message": message,  # Simpan pesan asli
                     "schedule_time": schedule_time
                 })
                 posted_count += 1
